@@ -19,16 +19,16 @@
             <h2 class="text-center">Registrar cliente</h2>
                 <form action="/add_cliente" method="post">
                     <div class="form-group mb-3">
-                        <input name="cli_Cedula" placeholder="Cli_Cedula" class="form-control">
+                        <input name="Cli_Cedula" placeholder="Cédula" class="form-control">
                     </div>
                     <div class="form-group mb-3">
-                        <input name="cli_Nombre" placeholder="Cli_Nombre" class="form-control">
+                        <input name="Cli_Nombre" placeholder="Nombre" class="form-control">
                     </div>
                     <div class="form-group mb-3">
-                        <input name="cli_Direccion" placeholder="Cli_Direccion" class="form-control">
+                        <input name="Cli_Direccion" placeholder="Dirección" class="form-control">
                     </div>
                     <div class="form-group mb-3">
-                        <input name="cli_Telefono" placeholder="Cli_Telefono" class="form-control">
+                        <input name="Cli_Telefono" placeholder="Teléfono" class="form-control">
                     </div>
                     <div class="form-group mb-3">
                         <button type="submit" class="btn btn-primary btn-block">
@@ -53,13 +53,14 @@
             <tbody>
                 {% for cliente in clientes %}
                 <tr>
-                    <td>{{ cliente.0 }}</td>
-                    <td>{{ cliente.1 }}</td>
-                    <td>{{ cliente.2 }}</td>
-                    <td>{{ cliente.3 }}</td>
+                    <td>{{ cliente.Cli_Cedula }}</td>
+                    <td>{{ cliente.Cli_Nombre }}</td>
+                    <td>{{ cliente.Cli_Direccion }}</td>
+                    <td>{{ cliente.Cli_Telefono }}</td>
+
                     <td>
-                        <a href="/edit_cliente/{{cliente.0}}" class="btn btn-secondary">Editar</a>
-                        <a href="/delete_cliente/{{cliente.0}}" class="btn btn-danger">Eliminar</a>
+                        <a href="/edit_cliente/{{cliente.Cli_Cedula}}" class="btn btn-secondary">Editar</a>
+                        <a href="/delete_cliente/{{cliente.Cli_Cedula}}" class="btn btn-danger">Eliminar</a>
                     </td>
                 </tr>
                 {% endfor %}

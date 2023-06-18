@@ -1,122 +1,75 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
-import pymysql
+from tablas import db, Cliente
+from sqlalchemy import text
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-#Conexión MySQL
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_PORT'] = 3307
-app.config['MYSQL_USER'] = 'conexionIUD'
-app.config['MYSQL_PASSWORD'] = 'Rafa.lopez.96'
-app.config['MYSQL_DB'] = 'inventario_merca_facil'
 
-#CONFIGURACIONES
+# Configuración de la conexión a la base de datos
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://conexionIUD:Rafa.lopez.96@localhost:3307/inventario_merca_facil'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-app.secret_key='mysecretkey'
+# Inicializar la instancia de SQLAlchemy
+db.init_app(app)
 
-def get_db_connection():
-    return pymysql.connect(
-        host=app.config['MYSQL_HOST'],
-        port=app.config['MYSQL_PORT'],
-        user=app.config['MYSQL_USER'],
-        password=app.config['MYSQL_PASSWORD'],
-        db=app.config['MYSQL_DB'],
-        charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
-    )
+secret_key = os.getenv('SECRET_KEY')
+app.secret_key = secret_key
 
 @app.route('/')
 def index():
-    connection = get_db_connection()
-    with connection.cursor() as cursor:
-        sql = 'SELECT * FROM clientes'
-        cursor.execute(sql)
-        data = [tuple(row.values()) for row in cursor.fetchall()]
-        print(data)
-    return render_template('index.html', clientes = data)
-    cursor.close()
-    connection.close()
-
+    clientes = Cliente.query.all()
+    return render_template('index.html', clientes=clientes)
 
 @app.route('/add_cliente', methods=['POST'])
 def add_cliente():
     if request.method == 'POST':
-        Cli_Cedula = request.form['cli_Cedula']
-        Cli_Nombre = request.form['cli_Nombre']
-        Cli_Direccion = request.form['cli_Direccion']
-        Cli_Telefono = request.form['cli_Telefono']
+        Cli_Cedula = request.form['Cli_Cedula']
+        Cli_Nombre = request.form['Cli_Nombre']
+        Cli_Direccion = request.form['Cli_Direccion']
+        Cli_Telefono = request.form['Cli_Telefono']
 
-        try:
-            connection = get_db_connection()
-            with connection.cursor() as cursor:
-                sql = 'INSERT INTO clientes (Cli_Cedula, cli_Nombre, cli_Direccion, cli_Telefono) VALUES (%s, %s, %s, %s)'
-                cursor.execute(sql, (Cli_Cedula, Cli_Nombre, Cli_Direccion, Cli_Telefono))
-                connection.commit()
+        cliente = Cliente(Cli_Cedula, Cli_Nombre, Cli_Direccion, Cli_Telefono)
+        db.session.add(cliente)
+        db.session.commit()
 
-        except:
-            connection.rollback()
-        finally:
-            flash('Cliente agregado satisfactoriamente!')
-            return redirect(url_for('index'))
-            connection.close()
+        flash('Cliente agregado satisfactoriamente!')
+        return redirect(url_for('index'))
 
     return 'Recibido!'
 
+@app.route('/edit_cliente/<Cli_Cedula>')
+def get_cliente(Cli_Cedula):
+    cliente = Cliente.query.get(Cli_Cedula)
+    return render_template('edit-cliente.html', cliente=cliente)
 
-@app.route('/edit_cliente/<cli_Cedula>')
-def get_cliente(cli_Cedula):
-    connection = get_db_connection()
-    with connection.cursor() as cursor:
-        sql = ('SELECT * FROM clientes WHERE Cli_Cedula = %s')
-        cursor.execute(sql,(cli_Cedula))
-        data = [tuple(row.values()) for row in cursor.fetchall()]
-        print(data[0])
-        connection.commit()
-        return render_template('edit-cliente.html', cliente = data[0])
-
-@app.route('/update_cliente/<cli_Cedula>', methods = ['POST'])
-def update_cliente(cli_Cedula):
+@app.route('/update_cliente/<Cli_Cedula>', methods=['POST'])
+def update_cliente(Cli_Cedula):
     if request.method == 'POST':
-        Cli_Cedula = request.form['cli_Cedula']
-        Cli_Nombre = request.form['cli_Nombre']
-        Cli_Direccion = request.form['cli_Direccion']
-        Cli_Telefono = request.form['cli_Telefono']
+        cliente = Cliente.query.get(Cli_Cedula)
 
-        connection = get_db_connection()
-        with connection.cursor() as cursor:
-            sql = ("""
-            UPDATE clientes
-            SET Cli_Cedula = %s,
-                Cli_Nombre = %s,
-                Cli_Direccion = %s,
-                Cli_Telefono = %s
-            WHERE Cli_Cedula = %s
-            """)
-            cursor.execute(sql, (Cli_Cedula, Cli_Nombre, Cli_Direccion, Cli_Telefono, cli_Cedula))
-            connection.commit()
+        cliente.Cli_Cedula = request.form['Cli_Cedula']
+        cliente.Cli_Nombre = request.form['Cli_Nombre']
+        cliente.Cli_Direccion = request.form['Cli_Direccion']
+        cliente.Cli_Telefono = request.form['Cli_Telefono']
 
-            flash('Cliente actualizado satisfactoriamente!')
+        db.session.commit()
+        flash('Cliente actualizado satisfactoriamente!')
         return redirect(url_for('index'))
-        connection.close()
 
+@app.route('/delete_cliente/<Cli_Cedula>')
+def delete_cliente(Cli_Cedula):
+    cliente = Cliente.query.get(Cli_Cedula)
 
-@app.route('/delete_cliente/<string:cli_Cedula>')
-def delete_cliente(cli_Cedula):
-    try:
-        connection = get_db_connection()
-        with connection.cursor() as cursor:
-            sql =('DELETE FROM clientes WHERE Cli_Cedula = {0}'.format(cli_Cedula))
-            cursor.execute(sql)
-            connection.commit()
-    except:
-        connection.rollback()
+    db.session.execute(text(f"DELETE FROM ventas WHERE Vent_Cliente='{Cli_Cedula}'"))
+    db.session.delete(cliente)
+    db.session.commit()
 
-    finally:
-        flash('Cliente eliminado satisfactoriamente!')
-        return redirect(url_for('index'))
-        connection.close()
-
-
+    flash('Cliente eliminado satisfactoriamente!')
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(port = 3000, debug = True)
+    app.run(port=3000, debug=True)
